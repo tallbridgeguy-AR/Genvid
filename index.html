@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #play-button {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        padding: 12px 24px;
+        background: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        font-family: sans-serif;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+
+    <button id="play-button">1. TAP TO START CAMERA</button>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      <a-assets>
+        <video id="ar-video" src="your-video.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video 
+            id="video-screen"
+            src="#ar-video" 
+            width="1" height="0.56" 
+            position="0 0 0"
+            look-at="[camera]"> </a-video>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const btn = document.querySelector('#play-button');
+      const video = document.querySelector('#ar-video');
+      
+      btn.addEventListener('click', () => {
+        video.play();
+        btn.style.display = 'none';
+      });
+    </script>
+  </body>
+</html>
