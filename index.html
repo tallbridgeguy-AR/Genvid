@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; }
-      #play-button {
+      body { margin: 0; overflow: hidden; touch-action: none; }
+      
+      /* UI Container */
+      .ui-overlay {
         position: fixed;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
-        padding: 15px 30px;
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        padding: 12px 25px;
         background: #4285f4;
         color: white;
         border: none;
@@ -21,13 +28,21 @@
         font-family: sans-serif;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+
+      #mute-btn {
+        background: #34a853;
+        display: none; /* Hidden until AR starts */
       }
     </style>
   </head>
   <body>
 
-    <button id="play-button">TAP TO START AR</button>
+    <div class="ui-overlay">
+      <button id="play-button">START AR</button>
+      <button id="mute-btn">MUTE</button>
+    </div>
 
     <a-scene 
       mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001;" 
@@ -46,8 +61,7 @@
         <a-video 
             id="video-screen"
             src="#ar-video" 
-            width="1.6" 
-            height="0.9" 
+            width="1.6" height="0.9" 
             position="0 0 0"
             scale="1.5 1.5 1.5">
         </a-video>
@@ -56,33 +70,67 @@
 
     <script>
       const btn = document.querySelector('#play-button');
+      const muteBtn = document.querySelector('#mute-btn');
       const sceneEl = document.querySelector('a-scene');
       const video = document.querySelector('#ar-video');
+      const videoEntity = document.querySelector('#video-screen');
 
+      // --- START & MUTE LOGIC ---
       btn.addEventListener('click', () => {
-        // 1. Start AR
-        const system = sceneEl.systems["mindar-image-system"];
-        system.start(); 
-
-        // 2. Audio Fix: Unmute and play immediately on user click
-        video.muted = false; 
-        video.volume = 1.0;
-        video.play().catch(e => console.log("Playback failed:", e));
-        
-        btn.style.display = 'none';
-      });
-
-      const targetEntity = document.querySelector('#target-entity');
-      
-      targetEntity.addEventListener("targetFound", () => {
-        // Ensure video plays when target reappears
+        sceneEl.systems["mindar-image-system"].start(); 
+        video.muted = false;
         video.play();
+        btn.style.display = 'none';
+        muteBtn.style.display = 'block';
       });
 
-      targetEntity.addEventListener("targetLost", () => {
-        // Optional: Pause when tracking is lost
-        video.pause();
+      muteBtn.addEventListener('click', () => {
+        video.muted = !video.muted;
+        muteBtn.innerText = video.muted ? "UNMUTE" : "MUTE";
+        muteBtn.style.background = video.muted ? "#ea4335" : "#34a853";
       });
+
+      // --- TWO FINGER PINCH TO SCALE ---
+      let initialDist = 0;
+      let initialScale = 1.5;
+
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          // Calculate initial distance between two fingers
+          initialDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+          initialScale = videoEntity.getAttribute('scale').x;
+        }
+      }, false);
+
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && initialDist > 0) {
+          const currentDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+          
+          // Calculate new scale based on ratio of distance change
+          const zoomFactor = currentDist / initialDist;
+          let newScale = initialScale * zoomFactor;
+
+          // Constraints (Don't let it get too tiny or too huge)
+          newScale = Math.min(Math.max(newScale, 0.5), 5);
+
+          videoEntity.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
+        }
+      }, false);
+
+      window.addEventListener('touchend', () => {
+        initialDist = 0;
+      });
+
+      // AR Tracking Handlers
+      const targetEntity = document.querySelector('#target-entity');
+      targetEntity.addEventListener("targetFound", () => video.play());
+      targetEntity.addEventListener("targetLost", () => video.pause());
     </script>
   </body>
 </html>
