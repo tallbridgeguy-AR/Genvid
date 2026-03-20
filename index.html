@@ -6,7 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; touch-action: none; }
+      body { margin: 0; overflow: hidden; touch-action: none; background-color: black; }
       
       .ui-overlay {
         position: fixed;
@@ -19,7 +19,7 @@
       }
 
       button {
-        padding: 14px 28px;
+        padding: 14px 24px;
         background: #4285f4;
         color: white;
         border: none;
@@ -30,12 +30,12 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         text-transform: uppercase;
         letter-spacing: 1px;
+        font-size: 14px;
       }
 
-      #mute-btn {
-        background: #34a853;
-        display: none; 
-      }
+      /* Contextual Colors */
+      #mute-btn { background: #34a853; display: none; }
+      #end-btn { background: #ea4335; display: none; }
     </style>
   </head>
   <body>
@@ -43,6 +43,7 @@
     <div class="ui-overlay">
       <button id="play-button">Start Experience</button>
       <button id="mute-btn">Mute</button>
+      <button id="end-btn">End AR</button>
     </div>
 
     <a-scene 
@@ -72,37 +73,53 @@
     <script>
       const btn = document.querySelector('#play-button');
       const muteBtn = document.querySelector('#mute-btn');
+      const endBtn = document.querySelector('#end-btn');
       const sceneEl = document.querySelector('a-scene');
       const video = document.querySelector('#ar-video');
       const videoEntity = document.querySelector('#video-screen');
 
-      // --- START LOGIC WITH AUDIO UNLOCK ---
+      // --- START LOGIC ---
       btn.addEventListener('click', () => {
         const system = sceneEl.systems["mindar-image-system"];
         system.start(); 
 
-        // Force audio unlock: Unmute before playing
         video.muted = false; 
         video.volume = 1.0;
 
         video.play().then(() => {
             btn.style.display = 'none';
             muteBtn.style.display = 'block';
-            console.log("Audio unlocked and video playing.");
+            endBtn.style.display = 'block';
         }).catch((err) => {
-            console.error("Autoplay prevented. Showing mute button for manual unlock.", err);
             btn.style.display = 'none';
             muteBtn.style.display = 'block';
-            muteBtn.innerText = "UNMUTE TO HEAR";
-            muteBtn.style.background = "#ea4335";
+            endBtn.style.display = 'block';
+            muteBtn.innerText = "UNMUTE";
         });
       });
 
-      // Mute/Unmute Toggle
+      // --- MUTE LOGIC ---
       muteBtn.addEventListener('click', () => {
         video.muted = !video.muted;
         muteBtn.innerText = video.muted ? "Unmute" : "Mute";
         muteBtn.style.background = video.muted ? "#ea4335" : "#34a853";
+      });
+
+      // --- END LOGIC ---
+      endBtn.addEventListener('click', () => {
+        const system = sceneEl.systems["mindar-image-system"];
+        
+        // 1. Stop the AR Engine (Turns off camera)
+        system.stop(); 
+
+        // 2. Stop and reset the video
+        video.pause();
+        video.currentTime = 0;
+
+        // 3. Reset the UI
+        btn.style.display = 'block';
+        muteBtn.style.display = 'none';
+        endBtn.style.display = 'none';
       });
 
       // --- PINCH TO SCALE ---
