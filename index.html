@@ -8,7 +8,6 @@
     <style>
       body { margin: 0; overflow: hidden; touch-action: none; }
       
-      /* UI Container */
       .ui-overlay {
         position: fixed;
         bottom: 20px;
@@ -29,11 +28,12 @@
         font-weight: bold;
         cursor: pointer;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        white-space: nowrap;
       }
 
       #mute-btn {
         background: #34a853;
-        display: none; /* Hidden until AR starts */
+        display: none;
       }
     </style>
   </head>
@@ -61,7 +61,7 @@
         <a-video 
             id="video-screen"
             src="#ar-video" 
-            width="1.08" height="1.08" 
+            width="1" height="1" 
             position="0 0 0"
             scale="1.5 1.5 1.5">
         </a-video>
@@ -75,7 +75,6 @@
       const video = document.querySelector('#ar-video');
       const videoEntity = document.querySelector('#video-screen');
 
-      // --- START & MUTE LOGIC ---
       btn.addEventListener('click', () => {
         sceneEl.systems["mindar-image-system"].start(); 
         video.muted = false;
@@ -90,47 +89,18 @@
         muteBtn.style.background = video.muted ? "#ea4335" : "#34a853";
       });
 
-      // --- TWO FINGER PINCH TO SCALE ---
+      // --- PINCH TO SCALE LOGIC ---
       let initialDist = 0;
       let initialScale = 1.5;
 
       window.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
-          // Calculate initial distance between two fingers
           initialDist = Math.hypot(
             e.touches[0].pageX - e.touches[1].pageX,
             e.touches[0].pageY - e.touches[1].pageY
           );
           initialScale = videoEntity.getAttribute('scale').x;
         }
-      }, false);
-
-      window.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2 && initialDist > 0) {
-          const currentDist = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-          );
-          
-          // Calculate new scale based on ratio of distance change
-          const zoomFactor = currentDist / initialDist;
-          let newScale = initialScale * zoomFactor;
-
-          // Constraints (Don't let it get too tiny or too huge)
-          newScale = Math.min(Math.max(newScale, 0.5), 5);
-
-          videoEntity.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
-        }
-      }, false);
-
-      window.addEventListener('touchend', () => {
-        initialDist = 0;
       });
 
-      // AR Tracking Handlers
-      const targetEntity = document.querySelector('#target-entity');
-      targetEntity.addEventListener("targetFound", () => video.play());
-      targetEntity.addEventListener("targetLost", () => video.pause());
-    </script>
-  </body>
-</html>
+      window.addEventListener('touchmove', (e) => {
