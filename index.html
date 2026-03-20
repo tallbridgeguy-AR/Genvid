@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindAR Video Experience</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
@@ -10,7 +9,7 @@
       body { margin: 0; overflow: hidden; }
       #play-button {
         position: fixed;
-        bottom: 30px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
@@ -21,9 +20,8 @@
         border-radius: 50px;
         font-family: sans-serif;
         font-weight: bold;
-        font-size: 16px;
         cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
       }
     </style>
   </head>
@@ -32,24 +30,14 @@
     <button id="play-button">TAP TO START AR</button>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video 
-          id="ar-video" 
-          src="test.mp4" 
-          preload="auto" 
-          loop="true" 
-          crossorigin="anonymous" 
-          playsinline 
-          webkit-playsinline 
-          muted 
-          autoplay>
-        </video>
+        <video id="ar-video" src="test.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -58,10 +46,10 @@
         <a-video 
             id="video-screen"
             src="#ar-video" 
-            width="1" 
-            height="0.56" 
+            width="1.6" 
+            height="0.9" 
             position="0 0 0"
-            rotation="0 0 0">
+            scale="1.5 1.5 1.5">
         </a-video>
       </a-entity>
     </a-scene>
@@ -70,39 +58,30 @@
       const btn = document.querySelector('#play-button');
       const sceneEl = document.querySelector('a-scene');
       const video = document.querySelector('#ar-video');
-      const targetEntity = document.querySelector('#target-entity');
 
       btn.addEventListener('click', () => {
-        // 1. Initialize and Start MindAR
-        const scene = document.querySelector('a-scene');
-        const arSystem = scene.systems["mindar-image-system"];
-        arSystem.start(); 
+        // 1. Start AR
+        const system = sceneEl.systems["mindar-image-system"];
+        system.start(); 
 
-        // 2. Play the video (it must be triggered by a click to work on mobile)
-        video.play().then(() => {
-          console.log("Video playing successfully");
-        }).catch(err => {
-          console.error("Video play error:", err);
-        });
+        // 2. Audio Fix: Unmute and play immediately on user click
+        video.muted = false; 
+        video.volume = 1.0;
+        video.play().catch(e => console.log("Playback failed:", e));
         
-        // 3. Hide UI
         btn.style.display = 'none';
       });
 
-      // Logic to pause video when target is lost and resume when found
+      const targetEntity = document.querySelector('#target-entity');
+      
       targetEntity.addEventListener("targetFound", () => {
-        console.log("Target Found!");
+        // Ensure video plays when target reappears
         video.play();
       });
 
       targetEntity.addEventListener("targetLost", () => {
-        console.log("Target Lost!");
+        // Optional: Pause when tracking is lost
         video.pause();
-      });
-
-      // Error handling for the video source
-      video.addEventListener('error', (e) => {
-        console.error("Error loading video file. Check the path and format.", e);
       });
     </script>
   </body>
