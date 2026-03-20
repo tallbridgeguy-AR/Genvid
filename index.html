@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindAR Video Experience</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
@@ -9,7 +10,7 @@
       body { margin: 0; overflow: hidden; }
       #play-button {
         position: fixed;
-        bottom: 20px; /* Moved to bottom so it doesn't block the view */
+        bottom: 30px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
@@ -20,8 +21,9 @@
         border-radius: 50px;
         font-family: sans-serif;
         font-weight: bold;
+        font-size: 16px;
         cursor: pointer;
-        display: block;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       }
     </style>
   </head>
@@ -37,7 +39,17 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video id="ar-video" src="test.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
+        <video 
+          id="ar-video" 
+          src="test.mp4" 
+          preload="auto" 
+          loop="true" 
+          crossorigin="anonymous" 
+          playsinline 
+          webkit-playsinline 
+          muted 
+          autoplay>
+        </video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -46,8 +58,10 @@
         <a-video 
             id="video-screen"
             src="#ar-video" 
-            width="1" height="0.56" 
-            position="0 0 0">
+            width="1" 
+            height="0.56" 
+            position="0 0 0"
+            rotation="0 0 0">
         </a-video>
       </a-entity>
     </a-scene>
@@ -56,26 +70,39 @@
       const btn = document.querySelector('#play-button');
       const sceneEl = document.querySelector('a-scene');
       const video = document.querySelector('#ar-video');
+      const targetEntity = document.querySelector('#target-entity');
 
       btn.addEventListener('click', () => {
-        // 1. Start the AR engine
-        const system = sceneEl.systems["mindar-image-system"];
-        system.start(); 
+        // 1. Initialize and Start MindAR
+        const scene = document.querySelector('a-scene');
+        const arSystem = scene.systems["mindar-image-system"];
+        arSystem.start(); 
 
-        // 2. Force the video to play/pause to "wake it up" for iOS
-        video.play();
+        // 2. Play the video (it must be triggered by a click to work on mobile)
+        video.play().then(() => {
+          console.log("Video playing successfully");
+        }).catch(err => {
+          console.error("Video play error:", err);
+        });
         
-        // 3. Hide the button
+        // 3. Hide UI
         btn.style.display = 'none';
       });
 
-      // Optional: Pause video when target is lost to save battery
-      const targetEntity = document.querySelector('#target-entity');
+      // Logic to pause video when target is lost and resume when found
+      targetEntity.addEventListener("targetFound", () => {
+        console.log("Target Found!");
+        video.play();
+      });
+
       targetEntity.addEventListener("targetLost", () => {
+        console.log("Target Lost!");
         video.pause();
       });
-      targetEntity.addEventListener("targetFound", () => {
-        video.play();
+
+      // Error handling for the video source
+      video.addEventListener('error', (e) => {
+        console.error("Error loading video file. Check the path and format.", e);
       });
     </script>
   </body>
